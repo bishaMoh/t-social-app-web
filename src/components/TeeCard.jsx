@@ -2,8 +2,14 @@ import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { tees } from '../api/client';
 import { useAuth } from '../context/AuthContext';
+import { Card, CardContent, CardFooter, CardHeader } from './ui/card';
+import { Avatar, AvatarFallback, AvatarImage } from './ui/avatar';
+import { Button } from './ui/button';
+import { Separator } from './ui/separator';
+import { Input } from './ui/input';
+import { Heart, MessageSquare, Trash2 } from 'lucide-react';
 
-export default function TeeCard({ tee, onUpdate }) {
+export default function TeeCard({ tee, onUpdate, variant = 'feed', compact = false }) {
   const { user } = useAuth();
   const [showComments, setShowComments] = useState(false);
   const [comments, setComments] = useState(tee.comments || []);
@@ -90,82 +96,118 @@ export default function TeeCard({ tee, onUpdate }) {
     }
   }
 
+  const containerClass = variant === 'grid' 
+    ? "w-full flex gap-3 p-4 border rounded-2xl bg-card hover:border-border/80 transition-colors shadow-sm break-inside-avoid"
+    : compact
+      ? "w-full flex gap-3 px-4 py-2 border-b hover:bg-secondary/20 transition-colors last:border-b-0"
+      : "w-full flex gap-3 px-4 py-3 border-b hover:bg-secondary/20 transition-colors last:border-b-0";
+
   return (
-    <article className="tee-card">
-      <div className="tee-header">
-        <Link to={`/users/${author?.id}`} className="author">
-          {author?.profilePicture ? (
-            <img src={author.profilePicture} alt="" className="avatar" />
-          ) : (
-            <div className="avatar avatar-fallback">{author?.name?.[0] || '?'}</div>
+    <article className={containerClass}>
+      <Link to={`/users/${author?.id}`} className="flex-shrink-0 h-10">
+        <Avatar className="h-10 w-10">
+          <AvatarImage src={author?.profilePicture} alt={author?.name} />
+          <AvatarFallback className="bg-primary/10 text-primary font-bold">
+            {author?.name?.[0]?.toUpperCase() || '?'}
+          </AvatarFallback>
+        </Avatar>
+      </Link>
+
+      <div className="flex flex-col flex-1 min-w-0">
+        <div className="flex items-center justify-between gap-2 mb-1">
+          <Link to={`/users/${author?.id}`} className="flex items-center gap-1.5 min-w-0 flex-1 hover:underline group">
+            <span className="font-bold truncate text-sm">{author?.name}</span>
+            <span className="text-muted-foreground text-sm truncate group-hover:no-underline">@{author?.username}</span>
+          </Link>
+          <time className="text-xs text-muted-foreground whitespace-nowrap">
+            {new Date(tee.createdAt).toLocaleString(undefined, {
+              month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit'
+            })}
+          </time>
+        </div>
+
+        <p className="text-[15px] leading-snug whitespace-pre-wrap break-words">{tee.text}</p>
+        {error && <p className="text-sm text-destructive mt-1">{error}</p>}
+
+        <div className="flex items-center gap-6 mt-3 -ml-2 text-muted-foreground">
+          <Button
+            variant="ghost"
+            size="sm"
+            className={`gap-1.5 h-8 px-2 rounded-full hover:bg-like/10 hover:text-like ${likedByMe ? 'text-like' : ''}`}
+            onClick={handleLike}
+            disabled={busy}
+          >
+            <Heart className={`h-[18px] w-[18px] ${likedByMe ? 'fill-current text-like' : ''}`} />
+            <span className="text-xs">{likeCount > 0 ? likeCount : ''}</span>
+          </Button>
+          
+          <Button variant="ghost" size="sm" className="gap-1.5 h-8 px-2 rounded-full hover:bg-secondary hover:text-foreground" onClick={loadComments}>
+            <MessageSquare className="h-[18px] w-[18px]" />
+            <span className="text-xs">{tee._count?.comments > 0 ? tee._count.comments : (comments.length > 0 ? comments.length : '')}</span>
+          </Button>
+
+          {isOwner && (
+            <Button variant="ghost" size="sm" className="ml-auto h-8 px-2 rounded-full text-destructive hover:text-destructive hover:bg-destructive/10" onClick={handleDeleteTee} disabled={busy}>
+              <Trash2 className="h-[18px] w-[18px]" />
+            </Button>
           )}
-          <div>
-            <strong>{author?.name}</strong>
-            <span>@{author?.username}</span>
+        </div>
+
+        {showComments && (
+          <div className="w-full mt-3 flex flex-col gap-3">
+            <Separator className="bg-border/50" />
+            <form onSubmit={handleComment} className="flex items-center gap-2 mt-1">
+              <Avatar className="h-6 w-6">
+                <AvatarImage src={user?.profilePicture} alt={user?.name} />
+                <AvatarFallback className="text-[10px]">{user?.name?.[0]?.toUpperCase()}</AvatarFallback>
+              </Avatar>
+              <Input
+                value={commentText}
+                onChange={(e) => setCommentText(e.target.value)}
+                placeholder="Post your reply…"
+                disabled={busy}
+                className="h-8 text-sm rounded-full border-none bg-secondary/50 focus-visible:ring-1"
+              />
+              <Button type="submit" size="sm" disabled={busy} className="h-8 rounded-full px-4 font-semibold">
+                Reply
+              </Button>
+            </form>
+            
+            <div className="flex flex-col gap-3 mt-2">
+              {comments.map((comment) => (
+                <div key={comment.id} className="flex gap-2 group/comment">
+                  <Avatar className="h-6 w-6 mt-1 flex-shrink-0">
+                    <AvatarImage src={comment.user?.profilePicture} alt={comment.user?.name} />
+                    <AvatarFallback className="text-[10px]">
+                      {comment.user?.name?.[0]?.toUpperCase()}
+                    </AvatarFallback>
+                  </Avatar>
+                  <div className="flex-1 flex flex-col min-w-0">
+                    <div className="flex items-center justify-between gap-2">
+                      <div className="flex items-baseline gap-1.5 min-w-0">
+                        <span className="font-semibold text-sm truncate">{comment.user?.name}</span>
+                        <span className="text-xs text-muted-foreground truncate">@{comment.user?.username}</span>
+                      </div>
+                      {user?.id === comment.userId && (
+                        <button
+                          type="button"
+                          className="text-xs text-muted-foreground opacity-0 group-hover/comment:opacity-100 hover:text-destructive transition-all"
+                          onClick={() => handleDeleteComment(comment.id)}
+                          disabled={busy}
+                        >
+                          Remove
+                        </button>
+                      )}
+                    </div>
+                    <p className="text-[14px] leading-snug">{comment.text}</p>
+                  </div>
+                </div>
+              ))}
+              {comments.length === 0 && <p className="text-sm text-center text-muted-foreground py-2">No replies yet.</p>}
+            </div>
           </div>
-        </Link>
-        <time>{new Date(tee.createdAt).toLocaleString()}</time>
-      </div>
-
-      <p className="tee-text">{tee.text}</p>
-
-      <div className="tee-actions">
-        <button
-          type="button"
-          className={`btn btn-ghost ${likedByMe ? 'liked' : ''}`}
-          onClick={handleLike}
-          disabled={busy}
-        >
-          {likedByMe ? '♥' : '♡'} {likeCount}
-        </button>
-        <button type="button" className="btn btn-ghost" onClick={loadComments}>
-          💬 {tee._count?.comments ?? comments.length}
-        </button>
-        {isOwner && (
-          <button type="button" className="btn btn-danger btn-sm" onClick={handleDeleteTee} disabled={busy}>
-            Delete
-          </button>
         )}
       </div>
-
-      {showComments && (
-        <div className="comments">
-          <form onSubmit={handleComment} className="comment-form">
-            <input
-              value={commentText}
-              onChange={(e) => setCommentText(e.target.value)}
-              placeholder="Write a comment…"
-              disabled={busy}
-            />
-            <button type="submit" className="btn btn-primary btn-sm" disabled={busy}>
-              Post
-            </button>
-          </form>
-          <ul>
-            {comments.map((comment) => (
-              <li key={comment.id}>
-                <div>
-                  <strong>{comment.user?.name}</strong>
-                  <span>@{comment.user?.username}</span>
-                  <p>{comment.text}</p>
-                </div>
-                {user?.id === comment.userId && (
-                  <button
-                    type="button"
-                    className="btn btn-ghost btn-sm"
-                    onClick={() => handleDeleteComment(comment.id)}
-                  >
-                    Remove
-                  </button>
-                )}
-              </li>
-            ))}
-            {comments.length === 0 && <li className="muted">No comments yet.</li>}
-          </ul>
-        </div>
-      )}
-
-      {error && <p className="error">{error}</p>}
     </article>
   );
 }

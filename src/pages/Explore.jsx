@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { tees } from '../api/client';
 import TeeCard from '../components/TeeCard';
+import PageHeader from '../components/PageHeader';
 
 export default function Explore() {
   const [items, setItems] = useState([]);
@@ -25,20 +26,30 @@ export default function Explore() {
   }, []);
 
   return (
-    <main className="page">
-      <section className="panel">
-        <h1>Explore</h1>
-        <p className="muted">All published tees on T Social.</p>
-        {error && <p className="error">{error}</p>}
-      </section>
+    <div className="flex flex-col min-h-screen">
+      <PageHeader title="Explore" subtitle="Discover trending tees across T Social" />
 
-      <section className="stack">
-        {loading && <p className="muted">Loading…</p>}
-        {!loading && items.length === 0 && <div className="empty">No published tees yet.</div>}
-        {items.map((tee) => (
-          <TeeCard key={tee.id} tee={tee} onUpdate={loadTees} />
-        ))}
-      </section>
-    </main>
+      <div className="p-4 md:p-6">
+        <div className="mb-6">
+          <h2 className="text-2xl font-extrabold tracking-tight">Trending now</h2>
+          <p className="text-muted-foreground mt-1 text-sm">See what's happening on T Social right now.</p>
+          {error && <p className="text-sm text-destructive mt-2">{error}</p>}
+        </div>
+
+        {loading && <p className="text-muted-foreground text-center py-8">Loading…</p>}
+        {!loading && items.length === 0 && (
+          <div className="text-center py-12 border border-dashed rounded-lg text-muted-foreground bg-muted/20">
+            No published tees yet.
+          </div>
+        )}
+        {!loading && items.length > 0 && (
+          <div className="columns-1 md:columns-2 gap-4 space-y-4">
+            {items.map((tee) => (
+              <TeeCard key={tee.id} tee={tee} onUpdate={loadTees} variant="grid" />
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
   );
 }

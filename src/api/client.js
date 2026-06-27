@@ -1,4 +1,5 @@
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000/api';
+export const SOCKET_URL = import.meta.env.VITE_SOCKET_URL || 'http://localhost:3000';
 
 function getToken() {
   return localStorage.getItem('token');
@@ -39,6 +40,7 @@ export const users = {
   updateMe: (body) => api('/users/me', { method: 'PUT', body: JSON.stringify(body) }),
   list: () => api('/users/'),
   get: (id) => api(`/users/${id}`),
+  suggestions: () => api('/users/suggestions'),
 };
 
 export const follows = {
@@ -49,9 +51,25 @@ export const follows = {
   unfollow: (userId) => api(`/follows/${userId}`, { method: 'DELETE' }),
 };
 
+export const preferences = {
+  get: () => api('/preferences'),
+  update: (body) => api('/preferences', { method: 'PUT', body: JSON.stringify(body) }),
+};
+
+export const conversations = {
+  list: () => api('/conversations'),
+  unreadCount: () => api('/conversations/unread-count'),
+  start: (userId) => api('/conversations', { method: 'POST', body: JSON.stringify({ userId }) }),
+  messages: (id) => api(`/conversations/${id}/messages`),
+  send: (id, text) =>
+    api(`/conversations/${id}/messages`, { method: 'POST', body: JSON.stringify({ text }) }),
+  markRead: (id) => api(`/conversations/${id}/read`, { method: 'PATCH' }),
+};
+
 export const tees = {
   published: () => api('/tees/'),
   feed: () => api('/tees/feed'),
+  forYou: () => api('/tees/feed/foryou'),
   create: (body) => api('/tees/newt', { method: 'POST', body: JSON.stringify(body) }),
   update: (id, body) => api(`/tees/${id}`, { method: 'PUT', body: JSON.stringify(body) }),
   remove: (id) => api(`/tees/${id}`, { method: 'DELETE' }),
